@@ -82,3 +82,63 @@ async def read_notes(
     result = await db.execute(select(Note).where(Note.user_id == current_user.id))
     notes = result.scalars().all()
     return notes
+
+
+@app.get("/notes/{note_id}", response_model=NoteOut)
+async def read_notes_number(
+    note_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    query = select(Note).where(Note.user_id == current_user.id, Note.id == note_id)
+    result = await db.execute(query)
+    note = result.scalar_one_or_none()
+    if not note:
+        raise HTTPException(
+            status_code=404,
+            detail="Note not found",
+        )
+    return note
+
+
+@app.put("/notes/{note_id}", response_model=NoteOut)
+async def update_note(
+    note_data: NoteCreate,
+    note_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    query = select(Note).where(Note.user_id == current_user.id, Note.id == note_id)
+    result = await db.execute(query)
+    note = result.scalar_one_or_none()
+    if not note:
+        raise HTTPException(
+            status_code=404,
+            detail="Note not found",
+        )
+    note.title = note_data.title
+    note.content = note_data.content
+
+    await db.commit()
+    await db.refresh(note)
+    return note
+
+
+@app.delete("/notes/{note_id}")
+async def delete_note(
+    note_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    query = select(Note).where(Note.user_id == current_user.id, Note.id == note_id)
+    result = await db.execute(query)
+    note = result.scalar_one_or_none()
+    if not note:
+        raise HTTPException(
+            status_code=404,
+            detail="Note not found",
+        )
+
+    await db.delete(note)
+    await db.commit()
+    return

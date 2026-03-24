@@ -1,7 +1,23 @@
 from database import Base
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    DateTime,
+    Text,
+    ForeignKey,
+    Table,
+)
 from datetime import datetime
 from sqlalchemy.orm import relationship
+
+note_tags = Table(
+    "note_tags",
+    Base.metadata,
+    Column("note_id", ForeignKey("notes.id", ondelete="CASCADE"), primary_key=True),
+    Column("tag_id", ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True),
+)
 
 
 class User(Base):
@@ -27,3 +43,13 @@ class Note(Base):
     user_id = Column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
+    tags = relationship("Tag", secondary="note_tags", back_populates="notes")
+
+
+class Tag(Base):
+    __tablename__ = "tags"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(50), unique=True, nullable=False, index=True)
+
+    notes = relationship("Note", secondary="note_tags", back_populates="tags")
