@@ -1,8 +1,9 @@
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_
+from sqlalchemy.orm import selectinload
 from database import get_db, AsyncSessionLocal
-from models import User, Note
+from models import User, Note, Tag
 from schemas import UserCreate, UserOut, NoteOut, NoteCreate
 from auth import get_password_hash, verify_password, create_token, get_current_user
 from fastapi.security import OAuth2PasswordRequestForm
@@ -68,18 +69,73 @@ async def created_note(
         title=note_data.title, content=note_data.content, user_id=current_user.id
     )
 
+    # Добавление тегов
+    for tag_name in note_data.tags:
+        query = select(Tag).where(Tag.name == tag_name)
+        result = await db.execute(query)
+        tag = result.scalar_one_or_none()
+        if not tag:
+            tag = Tag(name=tag_name)
+            db.add(tag)
+            await db.flush()
+        new_note.tags.append(tag)
+
     db.add(new_note)
     await db.commit()
-    await db.refresh(new_note)
+    await db.refresh(new_note, attribute_names=["tags"])
+    # await db.refresh(new_note)
 
     return new_note
 
 
 @app.get("/notes", response_model=list[NoteOut])
 async def read_notes(
-    current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    skip: int = 0,
+    limit: int = 10,
+    tags: str | None = None,
+    search: str | None = None,
+    sort: str = "created_at",
+    order: str = "desc",
 ):
-    result = await db.execute(select(Note).where(Note.user_id == current_user.id))
+    # Словарь разрешенных полей для сортировки
+    allowed_sort_fields = {
+        "created_at": Note.created_at,
+        "updated_at": Note.updated_at,
+        "title": Note.title,
+    }
+    limit = min(limit, 50)
+    queue = (
+        select(Note)
+        .where(Note.user_id == current_user.id)
+        .order_by(Note.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .options(selectinload(Note.tags))
+    )
+    # Поиск по тегам
+    if tags:
+        tag_list = [t.strip() for t in tags.split(",")]
+        queue = queue.filter(Note.tags.any(Tag.name.in_(tag_list)))
+
+    # Поиск по совпадением в title или content
+    if search:
+        search_condition = or_(
+            Note.title.ilike(f"%{search}%"), Note.content.ilike(f"%{search}%")
+        )
+        queue = queue.where(search_condition)
+
+    # Сортировка по разрешенному полю
+    if sort in allowed_sort_fields:
+        sort_column = allowed_sort_fields[sort]
+        if order == "desc":
+            sort_column = sort_column.desc()
+        queue = queue.order_by(sort_column)
+    else:
+        queue = queue.order_by(Note.created_at.desc())
+        
+    result = await db.execute(queue)
     notes = result.scalars().all()
     return notes
 
