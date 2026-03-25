@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./test.db:/app/test.db
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./test.db

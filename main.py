@@ -1,10 +1,10 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 from sqlalchemy.orm import selectinload
 from database import get_db, AsyncSessionLocal
-from models import User, Note, Tag
-from schemas import UserCreate, UserOut, NoteOut, NoteCreate
+from models.models import User, Note, Tag
+from schemas.schemas import UserCreate, UserOut, NoteOut, NoteCreate
 from auth import get_password_hash, verify_password, create_token, get_current_user
 from fastapi.security import OAuth2PasswordRequestForm
 
@@ -53,6 +53,8 @@ async def login(
     access_token = create_token(data={"sub": str(user.id)})
     return {"access_token": access_token, "token_type": "bearer"}
 
+#@app.post("/refresh")
+#async def refresh_token(refresh_token: str = Body())
 
 @app.get("/users/me", response_model=UserOut)
 async def read_users_me(current_user: User = Depends(get_current_user)):
@@ -134,7 +136,7 @@ async def read_notes(
         queue = queue.order_by(sort_column)
     else:
         queue = queue.order_by(Note.created_at.desc())
-        
+
     result = await db.execute(queue)
     notes = result.scalars().all()
     return notes

@@ -6,7 +6,7 @@ from httpx import AsyncClient
 from sqlalchemy import delete
 from main import app
 from database import AsyncSessionLocal
-from models import User
+from models.models import User
 
 
 @pytest_asyncio.fixture(autouse=True)

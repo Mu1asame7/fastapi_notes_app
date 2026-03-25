@@ -28,6 +28,8 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.now)
+    # refresh_token = Column(String, nullable=True, unique=True)
+    # refresh_token_expires = Column(DateTime, nullable=True)
     notes = relationship("Note", back_populates="user", cascade="all, delete-orphan")
 
 
