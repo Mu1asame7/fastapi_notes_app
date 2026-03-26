@@ -1,4 +1,13 @@
-from fastapi import FastAPI, HTTPException, status, Depends, Body
+from fastapi import (
+    FastAPI,
+    WebSocket,
+    HTTPException,
+    status,
+    Depends,
+    Body,
+    Query,
+    WebSocketDisconnect,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 from sqlalchemy.orm import selectinload
@@ -11,11 +20,16 @@ from auth import (
     create_token,
     get_current_user,
     create_refresh_token,
+    SECRET_KEY,
+    ALGORITHM,
 )
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime
+from websocket_manager import ConnectionManager
+from jose import jwt, JWTError
 
 app = FastAPI()
+Connection = ConnectionManager()
 
 
 @app.post("/register", response_model=UserOut)
@@ -231,3 +245,32 @@ async def delete_note(
     await db.delete(note)
     await db.commit()
     return
+
+
+@app.websocket("/ws/{user_id}")
+async def websocket_endpoint(
+    websocket: WebSocket, user_id: int, token: str = Query(...)
+):
+    # token = websocket.query_params.get("token")
+    # if not token:
+    #     await websocket.close(code=1008)
+    #     return
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        token_user_id = int(payload.get("sub"))
+    except JWTError:
+        await websocket.close(code=1008)
+        return
+
+    if user_id != token_user_id:
+        await websocket.close(code=1008)
+        return
+
+    await Connection.connect(websocket, user_id)
+
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        Connection.disconnect(websocket, user_id)
