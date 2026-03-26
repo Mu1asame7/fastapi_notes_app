@@ -6,7 +6,8 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from database import get_db
-from models.models import User
+from models.models import User, RefreshToken
+import secrets
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
@@ -25,6 +26,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 SECRET_KEY = "your-secret-key-here-change-in-production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
@@ -37,11 +39,28 @@ def create_token(data: dict) -> str:
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def create_refresh_token(user_id: str) -> str:
-    data = {"sub": str(user_id), "type": "refresh"}
-    expire = datetime.now(timezone.utc) + timedelta(days=7)
-    data.update({"exp": expire})
-    return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
+# Старая функция для генерации JWT refresh token
+# def create_refresh_token(user_id: str) -> str:
+#     data = {"sub": str(user_id), "type": "refresh"}
+#     expire = datetime.now(timezone.utc) + timedelta(days=7)
+#     data.update({"exp": expire})
+#     return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
+
+
+# Новая функция для генерации refresh token и хранения в БД
+async def create_refresh_token(db: AsyncSession, user_id: int):
+    refresh_token = secrets.token_urlsafe(32)
+    expires_at = datetime.now() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    new_refresh_token = RefreshToken(
+        token=refresh_token, user_id=user_id, expires_at=expires_at
+    )
+
+    # Созранение токена в БД
+    db.add(new_refresh_token)
+    await db.commit()
+    await db.refresh(new_refresh_token)
+
+    return new_refresh_token
 
 
 async def get_current_user(

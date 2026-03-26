@@ -31,6 +31,7 @@ class User(Base):
     # refresh_token = Column(String, nullable=True, unique=True)
     # refresh_token_expires = Column(DateTime, nullable=True)
     notes = relationship("Note", back_populates="user", cascade="all, delete-orphan")
+    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
 
 
 class Note(Base):
@@ -55,3 +56,16 @@ class Tag(Base):
     name = Column(String(50), unique=True, nullable=False, index=True)
 
     notes = relationship("Note", secondary="note_tags", back_populates="tags")
+
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    id = id = Column(Integer, primary_key=True)
+    token = Column(String, unique=True, nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.now)
+    revoked = Column(Boolean, default=False)
+
+    user = relationship("User", back_populates="refresh_tokens")
