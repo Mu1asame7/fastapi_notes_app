@@ -17,8 +17,8 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 # 👇 Теперь импортируем Base и модели (они должны быть доступны)
-from database import Base
-import models.models as models  # этот импорт нужен, чтобы модели были известны Alembic
+from app.core.database import Base
+import app.models.models as models  # этот импорт нужен, чтобы модели были известны Alembic
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

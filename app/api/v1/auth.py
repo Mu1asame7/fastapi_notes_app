@@ -5,8 +5,8 @@ from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from database import get_db
-from models.models import User, RefreshToken
+from app.core.database import get_db
+from app.models.models import User, RefreshToken
 import secrets
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")

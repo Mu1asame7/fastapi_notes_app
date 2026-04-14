@@ -11,10 +11,10 @@ from fastapi import (
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 from sqlalchemy.orm import selectinload
-from database import get_db, AsyncSessionLocal
-from models.models import User, Note, Tag, RefreshToken
-from schemas.schemas import UserCreate, UserOut, NoteOut, NoteCreate
-from auth import (
+from app.core.database import get_db, AsyncSessionLocal
+from app.models.models import User, Note, Tag, RefreshToken
+from app.schemas.schemas import UserCreate, UserOut, NoteOut, NoteCreate
+from app.api.v1.auth import (
     get_password_hash,
     verify_password,
     create_token,
@@ -25,7 +25,7 @@ from auth import (
 )
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime
-from websocket_manager import ConnectionManager
+from app.services.websocket_manager import ConnectionManager
 from jose import jwt, JWTError
 
 app = FastAPI()

@@ -1,5 +1,5 @@
 import asyncio
-from database import engine, Base
+from app.core.database import engine, Base
 
 
 async def test_connection():
