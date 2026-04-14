@@ -1,7 +1,6 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import WebSocket, WebSocketDisconnect
 from typing import Dict, List
-
-app = FastAPI()
+import json
 
 
 class ConnectionManager:
@@ -20,12 +19,12 @@ class ConnectionManager:
             if not self.active_connections[user_id]:  # если список пуст
                 del self.active_connections[user_id]
 
-    async def send_to_user(self, message: str, user_id: int):
+    async def send_to_user(self, user_id: int, message: dict):
         if user_id in self.active_connections:
             for connection in self.active_connections[user_id]:
-                await connection.send_text(message)
+                await connection.send_text(json.dumps(message))
 
-    async def broadcast(self, message: str):
+    async def broadcast(self, message: dict):
         for connections in self.active_connections.values():
             for connection in connections:
-                await connection.send_text(message)
+                await connection.send_text(json.dumps(message))

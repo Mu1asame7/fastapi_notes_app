@@ -132,6 +132,12 @@ async def created_note(
     await db.refresh(new_note, attribute_names=["tags"])
     # await db.refresh(new_note)
 
+    # Уведомление о создании заметки
+    await Connection.send_to_user(
+        current_user.id,
+        {"type": "note_created", "note_id": new_note.id, "title": note_data.title},
+    )
+
     return new_note
 
 
@@ -224,6 +230,13 @@ async def update_note(
 
     await db.commit()
     await db.refresh(note)
+
+    # Уведомление об изменении
+    await Connection.send_to_user(
+        current_user.id,
+        {"type": "note_updated", "note_id": note_id, "title": note_data.title},
+    )
+
     return note
 
 
@@ -244,6 +257,12 @@ async def delete_note(
 
     await db.delete(note)
     await db.commit()
+
+    # Уведомление об удалении
+    await Connection.send_to_user(
+        current_user.id, {"type": "note_deleted", "note_id": note_id}
+    )
+
     return
 
 
@@ -274,3 +293,10 @@ async def websocket_endpoint(
             await websocket.receive_text()
     except WebSocketDisconnect:
         Connection.disconnect(websocket, user_id)
+
+
+@app.websocket("/ws/test")
+async def test_ws(websocket: WebSocket):
+    await websocket.accept()
+    await websocket.send_text("OK")
+    await websocket.close()

@@ -10,13 +10,14 @@ load_dotenv()
 #    - sqlite - тип БД
 #    - aiosqlite - асинхронный драйвер для SQLite
 #    - ./test.db - файл базы данных в текущей папке
-SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+# SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
 
 # 2. Создаем асинхронный движок
 #    engine - это "ядро", которое управляет подключениями к БД
 #    echo=True - будет выводить все SQL-запросы в консоль (полезно для отладки)
 engine = create_async_engine(
-    SQLALCHEMY_DATABASE_URL, 
+    DATABASE_URL, 
     echo=True,  # можно убрать после отладки
     future=True  # используем новый стиль SQLAlchemy 2.0
 )
