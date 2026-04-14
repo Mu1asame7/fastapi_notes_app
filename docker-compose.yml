@@ -1,11 +1,28 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: notes_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   api:
     build: .
     ports:
       - "8000:8000"
-    volumes:
-      - ./test.db:/app/test.db
+    depends_on:
+      - db
     environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./test.db
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/notes_db
+      SECRET_KEY: your-secret-key-change-this
+    volumes:
+      - .:/app
+
+volumes:
+  postgres_data:
